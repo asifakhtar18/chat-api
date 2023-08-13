@@ -6,20 +6,24 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const bcrypt = require('bcrypt');
 const ws = require('ws')
+const fs  = require('fs');
 
 const user = require('./models/user');
 const Message = require('./models/message')
 dotenv.config();
 
-mongoose.connect(process.env.MONGO_URL )
+dbUrl = 'mongodb+srv://mychat:koEXUZBl4vYmsntv@cluster0.makaubj.mongodb.net/?retryWrites=true&w=majority'
+
+mongoose.connect(dbUrl )
 const jwtSecret = process.env.JWT_SECRET;
 
 const app = express();
+app.use('/uploads', express.static(__dirname + '/uploads'));
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
     credentials : true,
-    origin: process.env.CLIENT_URL
+    origin: 'http://localhost:3000'
 }));
 
 
@@ -73,8 +77,8 @@ app.get('/people' , async (req , res) =>{
 
 try{
     app.get('/profile' , (req,res) =>{
+        console.log("getting user")
         const token = req.cookies?.token;
-
         if(token){
             jwt.verify(token , jwtSecret , {} , (err, userdata ) =>{
                 if(err) throw err;
@@ -107,24 +111,36 @@ app.post('/login' , async (req , res) =>{
 
 })
 
+app.post('/logout', (req,res) => {
+    res.cookie('token', '', {sameSite:'none', secure:true}).json('ok');
+  });
+
 app.post('/register' , async (req , res) =>{
     const {username , password } = req.body;
-    const hashedPw = bcrypt.hashSync(password , bcryptSalt)
-    try {
-        const createdUser = await user.create({
-            username:username , 
-            password:hashedPw,
-        })
-        jwt.sign({userId:createdUser._id , username } ,jwtSecret , {} , ((err , token) =>{
+    
+    const isAlreadyUser =  await user.findOne({username:username})
+
+    if(!isAlreadyUser){
+        
+        const hashedPw = bcrypt.hashSync(password , bcryptSalt)
+        try {
+            const createdUser = await user.create({
+                username:username , 
+                password:hashedPw,
+            })
+            jwt.sign({userId:createdUser._id , username } ,jwtSecret , {} , ((err , token) =>{
+                if(err) throw err;
+                res.cookie('token' , token ).status(201).json({
+                    id: createdUser._id,
+                    
+                });
+            }))
+        } catch(err){
             if(err) throw err;
-            res.cookie('token' , token ).status(201).json({
-               id: createdUser._id,
-               
-            });
-        }))
-    } catch(err){
-        if(err) throw err;
-        res.status(500).json('error');
+            res.status(500).json('error');
+        }
+    }else{
+        return res.status(400).json({err : "User already exists !!" });
     }
 });
 
@@ -152,12 +168,11 @@ function notifyAboutOnlinePeople(){
 wss.on('connection' ,(connection, req) =>{
 
     connection.isAlive = true;
-
-
     connection.timer = setInterval(() => {
         connection.ping();
         connection.deathTimer = setTimeout(() => {
             connection.isAlive = false;
+            clearInterval(connection.timer)
             connection.terminate();
             notifyAboutOnlinePeople();
 
@@ -189,19 +204,37 @@ wss.on('connection' ,(connection, req) =>{
     //sending message
     connection.on('message' , async (message) =>{
         const messageData = JSON.parse(message.toString())
-        const { recipient , text } = messageData
-        if(recipient , text){
+        
+        const { recipient , text , file} = messageData;
+        
+       
+        let filename = null;
+        
+        if(file) {
+            const parts = file.name.split('.');
+            const ext = parts[parts?.length - 1];
+            filename = Date.now() + '.' + ext;
+            const path = __dirname + '/uploads/' + filename;
+            const bufferData = new Buffer.from(file.data.split(',')[1], 'base64');
+            fs.writeFile( path , bufferData , () =>{
+                console.log("path : " + path)
+             } )
+        }
+        if(recipient , text || file){
             const messageDoc = await Message.create({
                 sender:connection.userId,
                 recipient,
                 text, 
+                file: file ? filename : null ,
             });
 
-            [...wss.clients].filter(c => c.userId === recipient)
+            [...wss.clients]
+            .filter(c => c.userId === recipient)
             .forEach(c => c.send(JSON.stringify({
                 text , 
                 sender:connection.userId,
                 recipient,
+                file: file ? filename : null,
                 _id:messageDoc._id,
             })))
         
