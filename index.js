@@ -75,7 +75,7 @@ app.get('/people' , async (req , res) =>{
     res.json(users);
 })
 
-try{
+
     app.get('/profile' , (req,res) =>{
         console.log("getting user")
         const token = req.cookies?.token;
@@ -88,10 +88,8 @@ try{
             res.status(401).json('no token');
         }
     });
-}
-catch(err) {
-    throw err;
-}  
+
+
 
 app.post('/login' , async (req , res) =>{
     const {username , password} = req.body
