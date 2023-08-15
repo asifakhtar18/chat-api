@@ -77,7 +77,7 @@ app.get('/people' , async (req , res) =>{
 
 
     app.get('/profile' , (req,res) =>{
-        console.log("getting user")
+        console.log(req.cookies)
         const token = req.cookies?.token;
         if(token){
             jwt.verify(token , jwtSecret , {} , (err, userdata ) =>{
