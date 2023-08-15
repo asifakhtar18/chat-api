@@ -77,7 +77,6 @@ app.get('/people' , async (req , res) =>{
 
 
     app.get('/profile' , (req,res) =>{
-        console.log(req.cookies?.token)
         const token = req.cookies?.token;
         if(token){
             jwt.verify(token , jwtSecret , {} , (err, userdata ) =>{
@@ -115,7 +114,7 @@ app.post('/logout', (req,res) => {
 
 app.post('/register' , async (req , res) =>{
     const {username , password } = req.body;
-    console.log({username , password } = req.body)
+    console.log(username , password)
     const isAlreadyUser =  await user.findOne({username:username})
 
     if(!isAlreadyUser){
