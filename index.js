@@ -115,7 +115,7 @@ app.post('/logout', (req,res) => {
 
 app.post('/register' , async (req , res) =>{
     const {username , password } = req.body;
-    
+    console.log({username , password } = req.body)
     const isAlreadyUser =  await user.findOne({username:username})
 
     if(!isAlreadyUser){
