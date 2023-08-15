@@ -77,7 +77,7 @@ app.get('/people' , async (req , res) =>{
 
 
     app.get('/profile' , (req,res) =>{
-        console.log(req.cookies)
+        console.log(req.cookies?.token)
         const token = req.cookies?.token;
         if(token){
             jwt.verify(token , jwtSecret , {} , (err, userdata ) =>{
@@ -100,7 +100,7 @@ app.post('/login' , async (req , res) =>{
         if(passOk){
             jwt.sign({userId:foundUser._id , username} , jwtSecret , {} , (err , token)=> {
                 if(err) throw err;
-                res.cookie('token' , token).json({
+                res.cookie('token' , token , {sameSite:'none', secure:true}).json({
                     id: foundUser._id
                 })
             });
@@ -128,7 +128,7 @@ app.post('/register' , async (req , res) =>{
             })
             jwt.sign({userId:createdUser._id , username } ,jwtSecret , {} , ((err , token) =>{
                 if(err) throw err;
-                res.cookie('token' , token ).status(201).json({
+                res.cookie('token' , token ,  {sameSite:'none', secure:true} ).status(201).json({
                     id: createdUser._id,
                     
                 });
@@ -277,6 +277,3 @@ wss.on('connection' ,(connection, req) =>{
 
 
 
-//koEXUZBl4vYmsntv
-
-//mongodb+srv://mychat:<password>@cluster0.makaubj.mongodb.net/?retryWrites=true&w=majority
