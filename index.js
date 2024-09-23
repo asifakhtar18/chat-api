@@ -12,7 +12,7 @@ const user = require('./models/user');
 const Message = require('./models/message')
 dotenv.config();
 
-dbUrl = 'mongodb+srv://mychat:koEXUZBl4vYmsntv@cluster0.makaubj.mongodb.net/?retryWrites=true&w=majority'
+dbUrl = "mongodb_url"
 
 mongoose.connect(dbUrl )
 const jwtSecret = process.env.JWT_SECRET;
